@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="Mooncake: A KVCache-centric Disaggregated Architecture for LLM Serving">
+  <meta name="keywords" content="Mooncake, KVCache, LLM Serving, Disaggregated Architecture, AI, Machine Learning">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mooncake: A KVCache-centric Disaggregated Architecture for LLM Serving</title>
+
+  <script type="module" src="https://md-block.verou.me/md-block.js"></script>
+
+  <!-- Load d3.js -->
+  <script src="https://d3js.org/d3.v4.js"></script>
+
+  <!-- Load plotly.js -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+  <!-- Color palette -->
+  <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3plus-text@1"></script>
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-MZNP3SCQ1V"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-MZNP3SCQ1V');
+  </script>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  <link rel="icon" href="./static/images/favicon.svg">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+</head>
+
+<body>
+  <section class="hero">
+    <div class="hero-body">
+      <div class="container is-max-widescreen">
+        <div class="columns is-centered">
+          <div class="column has-text-centered">
+            <h1 class="title is-1 publication-title">Mooncake: A KVCache-centric Disaggregated Architecture for LLM Serving</h1>
+            <div class="is-size-5 publication-authors">
+              <span class="author-block">
+                Ruoyu Qin<sup>1,2*</sup>, Zheming Li<sup>1*</sup>, Weiran He<sup>1</sup>, Mingxing Zhang<sup>2**</sup>, Yongwei Wu<sup>2</sup>, Weimin Zheng<sup>2</sup>, Xinran Xu<sup>1**</sup>
+              </span>
+            </div>
+            <br>
+            <div class="is-size-5 publication-authors">
+              <span class="author-block">
+                <sup>1</sup>Moonshot AI, <sup>2</sup>Tsinghua University
+              </span>
+            </div>
+            <i style="font-size: 15px !important;">*Contributed equally. **Corresponding Authors.</i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section>
+    <div class="container is-max-widescreen">
+      <h2 class="title">Abstract</h2>
+      <p>Mooncake is the serving platform for Kimi, a leading LLM service provided by Moonshot AI. It features a KVCache-centric disaggregated architecture that separates the prefill and decoding clusters. It also leverages the underutilized CPU, DRAM, and SSD resources of the GPU cluster to implement a disaggregated cache of KVCache. The core of Mooncake is its KVCache-centric scheduler, which balances maximizing overall effective throughput while meeting latency-related Service Level Objectives (SLOs). Unlike traditional studies that assume all requests will be processed, Mooncake faces challenges due to highly overloaded scenarios. To mitigate these, we developed a prediction-based early rejection policy. Experiments show that Mooncake excels in long-context scenarios. Compared to the baseline method, Mooncake can achieve up to a 525% increase in throughput in certain simulated scenarios while adhering to SLOs. Under real workloads, Mooncake's innovative architecture enables Kimi to handle 75% more requests.</p>
+    </div>
+  </section>
+  <section>
+    <div class="container is-max-widescreen">
+      <h2 class="title">Introduction</h2>
+      <p>With the rapid adoption of large language models (LLMs) in various scenarios, the workloads for LLM serving have become significantly diversified. These workloads differ in input/output length, frequency and distribution of arrival, and, most importantly, demand different kinds of Service Level Objectives (SLOs). As a Model as a Service (MaaS) provider, one of the primary goals of Kimi is to solve an optimization problem with multiple complex constraints. The optimization goal is to maximize overall effective throughput, which directly impacts revenue, while the constraints reflect varying levels of SLOs. These SLOs typically involve meeting latency-related requirements, mainly the time to first token (TTFT) and the time between tokens (TBT).</p>
+      <div style="text-align: center;">
+        <img src="./static/images/architecturev2.pdf" alt="Mooncake Architecture" width="95%">
+        <p>Figure 1: Mooncake Architecture.</p>
+      </div>
+    </div>
+  </section>
+  <section>
+    <div class="container is-max-widescreen">
+      <h2 class="title">Methods</h2>
+      <p>To achieve this goal, a prerequisite is to make the best use of the various kinds of resources available in the GPU cluster. Specifically, although GPU servers are currently provided as highly integrated nodes (e.g., DGX/HGX supercomputers), it is necessary to decouple and restructure them into several disaggregated resource pools, each optimized for different but collaborative goals. For example, many researchers have suggested separating prefill servers from decoding servers because these two stages of LLM serving have very different computational characteristics, in which the KVCache shifts with requests moving from prefill to decoding servers.</p>
+      <p>Building on this idea, we found that the scheduling of KVCache is central to LLM serving scheduling. To improve overall throughput, there are typically two general approaches: 1) reuse KVCache as much as possible to reduce the required computation resources; and 2) maximize the number of tokens in each batch to improve the Model FLOPs Utilization (MFU). However, reusing KVCache from a remote location will prolong the TTFT, and a large batch size will lead to a larger TBT. Thus, the utilization of both these throughput-oriented optimizations may lead to violations of latency-related SLOs.</p>
+    </div>
+  </section>
+  <section>
+    <div class="container is-max-widescreen">
+      <h2 class="title">Experimental Results</h2>
+      <p>Experiments show that Mooncake excels in long-context scenarios. Compared to the baseline method, Mooncake can achieve up to a 525% increase in throughput in certain simulated scenarios while adhering to SLOs. Under real workloads, Mooncake's innovative architecture enables Kimi to handle 75% more requests.</p>
+      <div style="text-align: center;">
+        <img src="./static/images/prefill_decode_latency.pdf" alt="Prefill and Decoding Latency" width="95%">
+        <p>Figure 2: Normalized throughput and latency of prefill and decoding stages with different sequence lengths or batch sizes for the dummy LLaMA2-70B model.</p>
+      </div>
+    </div>
+  </section>
+  <footer class="footer">
+    <div class="container">
+      <div class="content has-text-centered">
+        <a class="icon-link" href="https://github.com/" class="external-link" disabled>
+          <i class="fab fa-github"></i>
+        </a>
+      </div>
+      <div class="columns is-centered">
+        <div class="column is-8">
+          <div class="content">
+            <p>
+              This website is licensed under a <a rel="license"
+                href="http://creativecommons.org/licenses/by-sa/4.0/">Creative
+                Commons Attribution-ShareAlike 4.0 International License</a>.
+            </p>
+            <p>
+              This means you are free to borrow the <a href="https://github.com/">source
+                code</a> of this website (the website is hosted on the gh-pages branch of the repository),
+              we just ask that you link back to this page in the footer.
+              The design of this website is based on <a href="https://nerfies.github.io/">NERFies</a> ,<a
+                href="https://ds1000-code-gen.github.io/" target="_blank">DS-1000</a> and <a
+                href="https://webshop-pnlp.github.io/" target="_blank">WebShop</a>. Please
+              remember to remove the analytics code included in the header of the website which you do not want on
+              your website. </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</body>
+
+</html>
